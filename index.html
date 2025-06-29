@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bridge & Crypto Calculator - Debug</title>
+    <meta name="description" content="Bridge Calculator and Crypto Converter - Debug Version">
+    <meta name="theme-color" content="#2c3e50">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        :root {
+            --bg-primary: #34495e;
+            --bg-secondary: #2c3e50;
+            --display-bg: #ecf0f1;
+            --display-text: #2c3e50;
+            --btn-blue: #3498db;
+            --btn-orange: #f39c12;
+            --btn-green: #27ae60;
+            --btn-red: #e74c3c;
+            --btn-gray: #7f8c8d;
+            --text-light: #ffffff;
+            --border-radius: 12px;
+            --shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            padding: 10px;
+            gap: 12px;
+        }
+
+        .display {
+            background: var(--display-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            color: var(--display-text);
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: var(--shadow);
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .toggle-group {
+            display: flex;
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            padding: 4px;
+            box-shadow: var(--shadow);
+        }
+
+        .toggle {
+            flex: 1;
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-light);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .toggle.active {
+            background: var(--btn-blue);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .btn {
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .btn-blue { background: var(--btn-blue); }
+        .btn-orange { background: var(--btn-orange); }
+        .btn-green { background: var(--btn-green); }
+        .btn-red { background: var(--btn-red); }
+        .btn-gray { background: var(--btn-gray); }
+
+        .copyright {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 10px;
+            padding: 4px;
+            flex-shrink: 0;
+        }
+
+        .debug-info {
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        /* Mobile-specific adjustments */
+        @media (max-width: 480px) {
+            .container { padding: 8px; gap: 8px; }
+            .display { min-height: 60px; font-size: 20px; padding: 15px; }
+            .btn { min-height: 45px; font-size: 16px; }
+        }
+
+        @media (max-height: 600px) {
+            .container { gap: 6px; padding: 6px; }
+            .display { min-height: 50px; font-size: 18px; padding: 12px; }
+            .btn { min-height: 40px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-info" id="debugInfo">Loading...</div>
+    
+    <div class="container">
+        <div class="display" id="display">
+            Mobile Debug Version
+        </div>
+        
+        <div class="controls">
+            <div class="toggle-group">
+                <button class="toggle active" id="vulnerable">Vulnerable</button>
+                <button class="toggle" id="keep-awake">Keep Awake</button>
+            </div>
+        </div>
+
+        <div class="button-grid">
+            <!-- Row 1: Numbers 1-4, Clear -->
+            <button class="btn btn-blue">1</button>
+            <button class="btn btn-blue">2</button>
+            <button class="btn btn-blue">3</button>
+            <button class="btn btn-blue">4</button>
+            <button class="btn btn-red">C</button>
+
+            <!-- Row 2: Numbers 5-7, X, XX -->
+            <button class="btn btn-blue">5</button>
+            <button class="btn btn-blue">6</button>
+            <button class="btn btn-blue">7</button>
+            <button class="btn btn-orange">X</button>
+            <button class="btn btn-orange">XX</button>
+
+            <!-- Row 3: Suits -->
+            <button class="btn btn-green">♣</button>
+            <button class="btn btn-red">♦</button>
+            <button class="btn btn-red">♥</button>
+            <button class="btn btn-green">♠</button>
+            <button class="btn btn-green">NT</button>
+
+            <!-- Row 4: Negative numbers -->
+            <button class="btn btn-red">-1</button>
+            <button class="btn btn-red">-2</button>
+            <button class="btn btn-red">-3</button>
+            <button class="btn btn-red">-4</button>
+            <button class="btn btn-red">-5</button>
+
+            <!-- Row 5: Positive numbers -->
+            <button class="btn btn-green">+1</button>
+            <button class="btn btn-green">+2</button>
+            <button class="btn btn-green">+3</button>
+            <button class="btn btn-green">+4</button>
+            <button class="btn btn-green">+5</button>
+
+            <!-- Row 6: More negatives, special buttons -->
+            <button class="btn btn-red">-6</button>
+            <button class="btn btn-green">+6</button>
+            <button class="btn btn-orange">📊</button>
+            <button class="btn btn-blue">£/€/$</button>
+            <button class="btn btn-blue">123</button>
+        </div>
+
+        <div class="copyright">© 2025 Mike Smith - Debug Version</div>
+    </div>
+
+    <script>
+        // Debug information
+        function updateDebugInfo() {
+            const debugInfo = document.getElementById('debugInfo');
+            const info = {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                userAgent: navigator.userAgent.substring(0, 30) + '...',
+                viewport: document.querySelector('meta[name="viewport"]')?.content || 'none'
+            };
+            
+            debugInfo.innerHTML = `
+                Debug: ${info.width}×${info.height}<br>
+                UA: ${info.userAgent}<br>
+                VP: ${info.viewport}
+            `;
+            
+            // Also update main display
+            const display = document.getElementById('display');
+            display.textContent = `MOBILE DEBUG: ${info.width} × ${info.height}`;
+        }
+
+        // Simple button functionality
+        function setupButtons() {
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    console.log('Button clicked:', this.textContent);
+                    alert('Button works: ' + this.textContent);
+                });
+            });
+
+            // Toggle buttons
+            const toggles = document.querySelectorAll('.toggle');
+            toggles.forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    toggles.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    alert('Toggle: ' + this.textContent);
+                });
+            });
+        }
+
+        // Initialize without service worker
+        function init() {
+            console.log('Debug version loading...');
+            updateDebugInfo();
+            setupButtons();
+            
+            // Hide debug info after 5 seconds
+            setTimeout(() => {
+                document.getElementById('debugInfo').style.display = 'none';
+            }, 5000);
+            
+            // Update on resize
+            window.addEventListener('resize', updateDebugInfo);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(updateDebugInfo, 300);
+            });
+        }
+
+        // Start immediately (no waiting for DOM)
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
