@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Bridge & Crypto Calculator - Debug</title>
-    <meta name="description" content="Bridge Calculator and Crypto Converter - Debug Version">
+    <title>Bridge & Crypto Calculator</title>
+    <meta name="description" content="Bridge Calculator and Crypto Converter - Works Offline">
     <meta name="theme-color" content="#2c3e50">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     
     <style>
         * {
@@ -27,6 +31,7 @@
             --btn-green: #27ae60;
             --btn-red: #e74c3c;
             --btn-gray: #7f8c8d;
+            --btn-purple: #9b59b6;
             --text-light: #ffffff;
             --border-radius: 12px;
             --shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -44,30 +49,43 @@
             flex-direction: column;
             height: 100vh;
             width: 100vw;
-            padding: 10px;
-            gap: 12px;
+            padding: env(safe-area-inset-top, 8px) env(safe-area-inset-right, 8px) env(safe-area-inset-bottom, 8px) env(safe-area-inset-left, 8px);
+            gap: 8px;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
         .display {
             background: var(--display-bg);
             border-radius: var(--border-radius);
-            padding: 20px;
+            padding: 16px;
             color: var(--display-text);
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 600;
             text-align: center;
             box-shadow: var(--shadow);
-            min-height: 80px;
+            min-height: 70px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
         }
 
+        .score-display {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .contract-display {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
         .controls {
             display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 6px;
+            margin-bottom: 6px;
             flex-shrink: 0;
         }
 
@@ -75,18 +93,18 @@
             display: flex;
             background: var(--bg-secondary);
             border-radius: var(--border-radius);
-            padding: 4px;
+            padding: 3px;
             box-shadow: var(--shadow);
         }
 
         .toggle {
             flex: 1;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: transparent;
             border: none;
             color: var(--text-light);
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -101,7 +119,7 @@
         .button-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
+            gap: 6px;
             flex: 1;
             min-height: 0;
         }
@@ -109,7 +127,7 @@
         .btn {
             border: none;
             border-radius: var(--border-radius);
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: white;
             cursor: pointer;
@@ -118,7 +136,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 50px;
+            min-height: 45px;
             position: relative;
             overflow: hidden;
         }
@@ -128,174 +146,399 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .btn-blue { background: var(--btn-blue); }
         .btn-orange { background: var(--btn-orange); }
         .btn-green { background: var(--btn-green); }
         .btn-red { background: var(--btn-red); }
         .btn-gray { background: var(--btn-gray); }
+        .btn-purple { background: var(--btn-purple); }
 
         .copyright {
             text-align: center;
             color: rgba(255,255,255,0.7);
-            font-size: 10px;
-            padding: 4px;
+            font-size: 9px;
+            padding: 2px;
             flex-shrink: 0;
         }
 
-        .debug-info {
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px;
-            font-size: 12px;
-            z-index: 1000;
-        }
-
-        /* Mobile-specific adjustments */
+        /* Mobile optimizations */
         @media (max-width: 480px) {
-            .container { padding: 8px; gap: 8px; }
-            .display { min-height: 60px; font-size: 20px; padding: 15px; }
-            .btn { min-height: 45px; font-size: 16px; }
+            .container { padding: 6px; gap: 6px; }
+            .display { min-height: 60px; font-size: 16px; padding: 12px; }
+            .btn { min-height: 40px; font-size: 14px; }
+            .score-display { font-size: 20px; }
         }
 
         @media (max-height: 600px) {
-            .container { gap: 6px; padding: 6px; }
-            .display { min-height: 50px; font-size: 18px; padding: 12px; }
-            .btn { min-height: 40px; font-size: 14px; }
+            .container { gap: 4px; }
+            .display { min-height: 50px; padding: 10px; }
+            .btn { min-height: 35px; font-size: 13px; }
+            .score-display { font-size: 18px; }
+        }
+
+        /* Landscape mode for very short screens */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .container { padding: 4px; gap: 4px; }
+            .btn { min-height: 32px; font-size: 12px; }
+            .display { min-height: 40px; }
         }
     </style>
 </head>
 <body>
-    <div class="debug-info" id="debugInfo">Loading...</div>
-    
     <div class="container">
         <div class="display" id="display">
-            Mobile Debug Version
+            <div class="score-display" id="scoreDisplay">Select Contract</div>
+            <div class="contract-display" id="contractDisplay">Tap level and suit to start</div>
         </div>
         
         <div class="controls">
             <div class="toggle-group">
-                <button class="toggle active" id="vulnerable">Vulnerable</button>
-                <button class="toggle" id="keep-awake">Keep Awake</button>
+                <button class="toggle" id="vulnerable">Vulnerable</button>
+                <button class="toggle active" id="keep-awake">Keep Awake</button>
             </div>
         </div>
 
         <div class="button-grid">
-            <!-- Row 1: Numbers 1-4, Clear -->
-            <button class="btn btn-blue">1</button>
-            <button class="btn btn-blue">2</button>
-            <button class="btn btn-blue">3</button>
-            <button class="btn btn-blue">4</button>
-            <button class="btn btn-red">C</button>
+            <!-- Row 1: Contract levels 1-4, Clear -->
+            <button class="btn btn-blue" data-level="1">1</button>
+            <button class="btn btn-blue" data-level="2">2</button>
+            <button class="btn btn-blue" data-level="3">3</button>
+            <button class="btn btn-blue" data-level="4">4</button>
+            <button class="btn btn-red" id="clear">C</button>
 
-            <!-- Row 2: Numbers 5-7, X, XX -->
-            <button class="btn btn-blue">5</button>
-            <button class="btn btn-blue">6</button>
-            <button class="btn btn-blue">7</button>
-            <button class="btn btn-orange">X</button>
-            <button class="btn btn-orange">XX</button>
+            <!-- Row 2: Contract levels 5-7, Doubling -->
+            <button class="btn btn-blue" data-level="5">5</button>
+            <button class="btn btn-blue" data-level="6">6</button>
+            <button class="btn btn-blue" data-level="7">7</button>
+            <button class="btn btn-orange" id="double">X</button>
+            <button class="btn btn-orange" id="redouble">XX</button>
 
             <!-- Row 3: Suits -->
-            <button class="btn btn-green">♣</button>
-            <button class="btn btn-red">♦</button>
-            <button class="btn btn-red">♥</button>
-            <button class="btn btn-green">♠</button>
-            <button class="btn btn-green">NT</button>
+            <button class="btn btn-green" data-suit="C">♣</button>
+            <button class="btn btn-red" data-suit="D">♦</button>
+            <button class="btn btn-red" data-suit="H">♥</button>
+            <button class="btn btn-green" data-suit="S">♠</button>
+            <button class="btn btn-green" data-suit="NT">NT</button>
 
-            <!-- Row 4: Negative numbers -->
-            <button class="btn btn-red">-1</button>
-            <button class="btn btn-red">-2</button>
-            <button class="btn btn-red">-3</button>
-            <button class="btn btn-red">-4</button>
-            <button class="btn btn-red">-5</button>
+            <!-- Row 4: Undertricks (-1 to -5) -->
+            <button class="btn btn-red" data-result="-1">-1</button>
+            <button class="btn btn-red" data-result="-2">-2</button>
+            <button class="btn btn-red" data-result="-3">-3</button>
+            <button class="btn btn-red" data-result="-4">-4</button>
+            <button class="btn btn-red" data-result="-5">-5</button>
 
-            <!-- Row 5: Positive numbers -->
-            <button class="btn btn-green">+1</button>
-            <button class="btn btn-green">+2</button>
-            <button class="btn btn-green">+3</button>
-            <button class="btn btn-green">+4</button>
-            <button class="btn btn-green">+5</button>
+            <!-- Row 5: Making and overtricks -->
+            <button class="btn btn-green" data-result="0">Made</button>
+            <button class="btn btn-green" data-result="+1">+1</button>
+            <button class="btn btn-green" data-result="+2">+2</button>
+            <button class="btn btn-green" data-result="+3">+3</button>
+            <button class="btn btn-green" data-result="+4">+4</button>
 
-            <!-- Row 6: More negatives, special buttons -->
-            <button class="btn btn-red">-6</button>
-            <button class="btn btn-green">+6</button>
-            <button class="btn btn-orange">📊</button>
-            <button class="btn btn-blue">£/€/$</button>
-            <button class="btn btn-blue">123</button>
+            <!-- Row 6: More undertricks and utilities -->
+            <button class="btn btn-red" data-result="-6">-6</button>
+            <button class="btn btn-green" data-result="+5">+5</button>
+            <button class="btn btn-purple" id="history">📊</button>
+            <button class="btn btn-blue" id="crypto">£/€/$</button>
+            <button class="btn btn-blue" id="settings">⚙️</button>
         </div>
 
-        <div class="copyright">© 2025 Mike Smith - Debug Version</div>
+        <div class="copyright">© 2025 Mike Smith - All Rights Reserved</div>
     </div>
 
     <script>
-        // Debug information
-        function updateDebugInfo() {
-            const debugInfo = document.getElementById('debugInfo');
-            const info = {
-                width: window.innerWidth,
-                height: window.innerHeight,
-                userAgent: navigator.userAgent.substring(0, 30) + '...',
-                viewport: document.querySelector('meta[name="viewport"]')?.content || 'none'
+        // Bridge Scoring Engine (Integrated)
+        const BridgeScoring = (function() {
+            const TRICK_VALUES = {
+                'C': 20, 'D': 20, 'H': 30, 'S': 30, 'NT': 30
             };
+
+            const BONUS_SCORES = {
+                PART_SCORE: 50,
+                GAME: { VULNERABLE: 500, NON_VULNERABLE: 300 },
+                SMALL_SLAM: { VULNERABLE: 750, NON_VULNERABLE: 500 },
+                GRAND_SLAM: { VULNERABLE: 1500, NON_VULNERABLE: 1000 },
+                DOUBLED: 50,
+                REDOUBLED: 100
+            };
+
+            function calculateScore(level, suit, tricks, vulnerable, doubled = false, redoubled = false) {
+                const contractTricks = level + 6;
+                let breakdown = { trickScore: 0, overtrickScore: 0, bonusScore: 0, slamBonus: 0, doubledBonus: 0 };
+
+                // Base trick score
+                if (suit === 'NT') {
+                    breakdown.trickScore = 40 + (30 * (level - 1));
+                } else {
+                    breakdown.trickScore = level * TRICK_VALUES[suit];
+                }
+
+                // Apply doubling multipliers
+                if (redoubled) breakdown.trickScore *= 4;
+                else if (doubled) breakdown.trickScore *= 2;
+
+                if (tricks >= contractTricks) {
+                    // Making the contract
+                    if (tricks > contractTricks) {
+                        const overtricks = tricks - contractTricks;
+                        if (!doubled && !redoubled) {
+                            const overtrickValue = suit === 'NT' ? 30 : TRICK_VALUES[suit];
+                            breakdown.overtrickScore = overtrickValue * overtricks;
+                        } else if (doubled) {
+                            breakdown.overtrickScore = (vulnerable ? 200 : 100) * overtricks;
+                        } else if (redoubled) {
+                            breakdown.overtrickScore = (vulnerable ? 400 : 200) * overtricks;
+                        }
+                    }
+
+                    // Game/partscore bonus
+                    let basePoints = suit === 'NT' ? 40 + (30 * (level - 1)) : level * TRICK_VALUES[suit];
+                    if (doubled) basePoints *= 2;
+                    if (redoubled) basePoints *= 4;
+                    
+                    if (basePoints >= 100) {
+                        breakdown.bonusScore = vulnerable ? BONUS_SCORES.GAME.VULNERABLE : BONUS_SCORES.GAME.NON_VULNERABLE;
+                    } else {
+                        breakdown.bonusScore = BONUS_SCORES.PART_SCORE;
+                    }
+
+                    // Slam bonus
+                    if (level === 6) {
+                        breakdown.slamBonus = vulnerable ? BONUS_SCORES.SMALL_SLAM.VULNERABLE : BONUS_SCORES.SMALL_SLAM.NON_VULNERABLE;
+                    } else if (level === 7) {
+                        breakdown.slamBonus = vulnerable ? BONUS_SCORES.GRAND_SLAM.VULNERABLE : BONUS_SCORES.GRAND_SLAM.NON_VULNERABLE;
+                    }
+
+                    // Doubling bonus
+                    if (doubled) breakdown.doubledBonus = BONUS_SCORES.DOUBLED;
+                    else if (redoubled) breakdown.doubledBonus = BONUS_SCORES.REDOUBLED;
+
+                    return Object.values(breakdown).reduce((a, b) => a + b, 0);
+                } else {
+                    // Going down
+                    const undertricks = contractTricks - tricks;
+                    let penalty = 0;
+
+                    if (!doubled && !redoubled) {
+                        penalty = undertricks * (vulnerable ? 100 : 50);
+                    } else {
+                        for (let undertrick = 1; undertrick <= undertricks; undertrick++) {
+                            if (vulnerable) {
+                                penalty += undertrick === 1 ? 200 : 300;
+                            } else {
+                                if (undertrick === 1) penalty += 100;
+                                else if (undertrick === 2 || undertrick === 3) penalty += 200;
+                                else penalty += 300;
+                            }
+                        }
+                        if (redoubled) penalty *= 2;
+                    }
+                    return -penalty;
+                }
+            }
+
+            return { calculateScore };
+        })();
+
+        // App State
+        let gameState = {
+            level: null,
+            suit: null,
+            doubled: 'none', // 'none', 'doubled', 'redoubled'
+            vulnerable: false,
+            result: null
+        };
+
+        // DOM Elements
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const contractDisplay = document.getElementById('contractDisplay');
+        const vulnerableToggle = document.getElementById('vulnerable');
+        const keepAwakeToggle = document.getElementById('keep-awake');
+
+        // Input validation - check if result is possible for given contract
+        function isValidResult(level, result) {
+            const contractTricks = level + 6;
+            const maxUndertricks = -(contractTricks - 1); // Can't go down more than contract-1
+            const maxOvertricks = 13 - contractTricks; // Can't make more than 13 tricks total
             
-            debugInfo.innerHTML = `
-                Debug: ${info.width}×${info.height}<br>
-                UA: ${info.userAgent}<br>
-                VP: ${info.viewport}
-            `;
+            if (result === 0) return true; // Making contract is always valid
+            if (result > 0) return result <= maxOvertricks; // Overtricks
+            if (result < 0) return result >= maxUndertricks; // Undertricks
             
-            // Also update main display
-            const display = document.getElementById('display');
-            display.textContent = `MOBILE DEBUG: ${info.width} × ${info.height}`;
+            return false;
         }
 
-        // Simple button functionality
-        function setupButtons() {
-            const buttons = document.querySelectorAll('.btn');
-            buttons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    console.log('Button clicked:', this.textContent);
-                    alert('Button works: ' + this.textContent);
+        // Update button states based on current contract
+        function updateButtonStates() {
+            const resultButtons = document.querySelectorAll('[data-result]');
+            
+            resultButtons.forEach(btn => {
+                const result = parseInt(btn.dataset.result) || 0;
+                
+                if (gameState.level) {
+                    const isValid = isValidResult(gameState.level, result);
+                    btn.disabled = !isValid;
+                } else {
+                    btn.disabled = true; // Disable all result buttons until contract is set
+                }
+            });
+        }
+
+        // Update display
+        function updateDisplay() {
+            if (!gameState.level || !gameState.suit) {
+                scoreDisplay.textContent = 'Select Contract';
+                contractDisplay.textContent = 'Tap level and suit to start';
+                updateButtonStates();
+                return;
+            }
+
+            let contractText = `${gameState.level}${gameState.suit}`;
+            if (gameState.doubled === 'doubled') contractText += ' X';
+            if (gameState.doubled === 'redoubled') contractText += ' XX';
+            if (gameState.vulnerable) contractText += ' (Vul)';
+
+            if (gameState.result !== null) {
+                const contractTricks = gameState.level + 6;
+                const actualTricks = contractTricks + gameState.result;
+                
+                const score = BridgeScoring.calculateScore(
+                    gameState.level,
+                    gameState.suit,
+                    actualTricks,
+                    gameState.vulnerable,
+                    gameState.doubled === 'doubled',
+                    gameState.doubled === 'redoubled'
+                );
+
+                scoreDisplay.textContent = score >= 0 ? `+${score}` : `${score}`;
+                contractDisplay.textContent = `${contractText} • ${actualTricks} tricks`;
+            } else {
+                scoreDisplay.textContent = contractText;
+                contractDisplay.textContent = 'Select result';
+            }
+
+            updateButtonStates();
+        }
+
+        // Event Handlers
+        function handleLevelClick(level) {
+            gameState.level = level;
+            gameState.result = null;
+            updateDisplay();
+        }
+
+        function handleSuitClick(suit) {
+            gameState.suit = suit;
+            gameState.result = null;
+            updateDisplay();
+        }
+
+        function handleResultClick(result) {
+            if (gameState.level && gameState.suit) {
+                gameState.result = result;
+                updateDisplay();
+            }
+        }
+
+        function handleDoubleClick() {
+            if (gameState.doubled === 'none') {
+                gameState.doubled = 'doubled';
+            } else if (gameState.doubled === 'doubled') {
+                gameState.doubled = 'redoubled';
+            } else {
+                gameState.doubled = 'none';
+            }
+            gameState.result = null;
+            updateDisplay();
+        }
+
+        function handleClear() {
+            gameState = {
+                level: null,
+                suit: null,
+                doubled: 'none',
+                vulnerable: vulnerableToggle.classList.contains('active'),
+                result: null
+            };
+            updateDisplay();
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Level buttons
+            document.querySelectorAll('[data-level]').forEach(btn => {
+                btn.addEventListener('click', () => handleLevelClick(parseInt(btn.dataset.level)));
+            });
+
+            // Suit buttons
+            document.querySelectorAll('[data-suit]').forEach(btn => {
+                btn.addEventListener('click', () => handleSuitClick(btn.dataset.suit));
+            });
+
+            // Result buttons
+            document.querySelectorAll('[data-result]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!btn.disabled) {
+                        handleResultClick(parseInt(btn.dataset.result) || 0);
+                    }
                 });
             });
 
-            // Toggle buttons
-            const toggles = document.querySelectorAll('.toggle');
-            toggles.forEach(toggle => {
-                toggle.addEventListener('click', function() {
-                    toggles.forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    alert('Toggle: ' + this.textContent);
-                });
+            // Doubling buttons
+            document.getElementById('double').addEventListener('click', handleDoubleClick);
+            document.getElementById('redouble').addEventListener('click', handleDoubleClick);
+
+            // Clear button
+            document.getElementById('clear').addEventListener('click', handleClear);
+
+            // Vulnerability toggle
+            vulnerableToggle.addEventListener('click', () => {
+                vulnerableToggle.classList.toggle('active');
+                keepAwakeToggle.classList.remove('active');
+                gameState.vulnerable = vulnerableToggle.classList.contains('active');
+                gameState.result = null;
+                updateDisplay();
+            });
+
+            keepAwakeToggle.addEventListener('click', () => {
+                keepAwakeToggle.classList.toggle('active');
+                vulnerableToggle.classList.remove('active');
+                gameState.vulnerable = false;
+                gameState.result = null;
+                updateDisplay();
+            });
+
+            // Utility buttons (placeholder)
+            document.getElementById('history').addEventListener('click', () => {
+                alert('Score history feature coming soon!');
+            });
+
+            document.getElementById('crypto').addEventListener('click', () => {
+                alert('Crypto converter feature coming soon!');
+            });
+
+            document.getElementById('settings').addEventListener('click', () => {
+                alert('Settings feature coming soon!');
             });
         }
 
-        // Initialize without service worker
-        function init() {
-            console.log('Debug version loading...');
-            updateDebugInfo();
-            setupButtons();
-            
-            // Hide debug info after 5 seconds
-            setTimeout(() => {
-                document.getElementById('debugInfo').style.display = 'none';
-            }, 5000);
-            
-            // Update on resize
-            window.addEventListener('resize', updateDebugInfo);
-            window.addEventListener('orientationchange', () => {
-                setTimeout(updateDebugInfo, 300);
-            });
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(registration => console.log('SW registered'))
+                .catch(error => console.log('SW registration failed'));
         }
 
-        // Start immediately (no waiting for DOM)
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            updateDisplay();
+        });
     </script>
 </body>
 </html>
