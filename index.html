@@ -1,11 +1,4 @@
-// Utility buttons
-            document.getElementById('history').addEventListener('click', () => {
-                alert('Score history feature coming soon!');
-            });
-
-            document.getElementById('settings').addEventListener('click', () => {
-                alert('Settings feature coming soon!');
-            });<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -156,15 +149,6 @@
             overflow: hidden;
         }
 
-        .btn[data-suit] {
-            font-size: 30px;
-        }
-
-        .btn[data-suit="NT"] {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
         .btn:active {
             transform: scale(0.95);
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -173,6 +157,15 @@
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .btn[data-suit] {
+            font-size: 30px;
+        }
+
+        .btn[data-suit="NT"] {
+            font-size: 20px;
+            font-weight: 700;
         }
 
         .btn-blue { background: var(--btn-blue); }
@@ -227,7 +220,7 @@
             .container { 
                 gap: 6px; 
                 padding: 6px;
-                margin: 5px auto;
+                margin: 6px auto;
                 min-height: 500px;
                 height: auto;
             }
@@ -355,13 +348,13 @@
     </div>
 
     <script>
-        // Bridge Scoring Engine (Integrated)
-        const BridgeScoring = (function() {
-            const TRICK_VALUES = {
+        // Bridge Scoring Engine
+        var BridgeScoring = (function() {
+            var TRICK_VALUES = {
                 'C': 20, 'D': 20, 'H': 30, 'S': 30, 'NT': 30
             };
 
-            const BONUS_SCORES = {
+            var BONUS_SCORES = {
                 PART_SCORE: 50,
                 GAME: { VULNERABLE: 500, NON_VULNERABLE: 300 },
                 SMALL_SLAM: { VULNERABLE: 750, NON_VULNERABLE: 500 },
@@ -370,9 +363,9 @@
                 REDOUBLED: 100
             };
 
-            function calculateScore(level, suit, tricks, vulnerable, doubled = false, redoubled = false) {
-                const contractTricks = level + 6;
-                let breakdown = { trickScore: 0, overtrickScore: 0, bonusScore: 0, slamBonus: 0, doubledBonus: 0 };
+            function calculateScore(level, suit, tricks, vulnerable, doubled, redoubled) {
+                var contractTricks = level + 6;
+                var breakdown = { trickScore: 0, overtrickScore: 0, bonusScore: 0, slamBonus: 0, doubledBonus: 0 };
 
                 // Base trick score
                 if (suit === 'NT') {
@@ -388,9 +381,9 @@
                 if (tricks >= contractTricks) {
                     // Making the contract
                     if (tricks > contractTricks) {
-                        const overtricks = tricks - contractTricks;
+                        var overtricks = tricks - contractTricks;
                         if (!doubled && !redoubled) {
-                            const overtrickValue = suit === 'NT' ? 30 : TRICK_VALUES[suit];
+                            var overtrickValue = suit === 'NT' ? 30 : TRICK_VALUES[suit];
                             breakdown.overtrickScore = overtrickValue * overtricks;
                         } else if (doubled) {
                             breakdown.overtrickScore = (vulnerable ? 200 : 100) * overtricks;
@@ -400,7 +393,7 @@
                     }
 
                     // Game/partscore bonus
-                    let basePoints = suit === 'NT' ? 40 + (30 * (level - 1)) : level * TRICK_VALUES[suit];
+                    var basePoints = suit === 'NT' ? 40 + (30 * (level - 1)) : level * TRICK_VALUES[suit];
                     if (doubled) basePoints *= 2;
                     if (redoubled) basePoints *= 4;
                     
@@ -421,16 +414,16 @@
                     if (doubled) breakdown.doubledBonus = BONUS_SCORES.DOUBLED;
                     else if (redoubled) breakdown.doubledBonus = BONUS_SCORES.REDOUBLED;
 
-                    return Object.values(breakdown).reduce((a, b) => a + b, 0);
+                    return breakdown.trickScore + breakdown.overtrickScore + breakdown.bonusScore + breakdown.slamBonus + breakdown.doubledBonus;
                 } else {
                     // Going down
-                    const undertricks = contractTricks - tricks;
-                    let penalty = 0;
+                    var undertricks = contractTricks - tricks;
+                    var penalty = 0;
 
                     if (!doubled && !redoubled) {
                         penalty = undertricks * (vulnerable ? 100 : 50);
                     } else {
-                        for (let undertrick = 1; undertrick <= undertricks; undertrick++) {
+                        for (var undertrick = 1; undertrick <= undertricks; undertrick++) {
                             if (vulnerable) {
                                 penalty += undertrick === 1 ? 200 : 300;
                             } else {
@@ -445,51 +438,52 @@
                 }
             }
 
-            return { calculateScore };
+            return { calculateScore: calculateScore };
         })();
 
         // App State
-        let gameState = {
+        var gameState = {
             level: null,
             suit: null,
-            doubled: 'none', // 'none', 'doubled', 'redoubled'
+            doubled: 'none',
             vulnerable: false,
             result: null
         };
 
         // DOM Elements
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        const contractDisplay = document.getElementById('contractDisplay');
-        const vulnerableToggle = document.getElementById('vulnerable');
-        const keepAwakeToggle = document.getElementById('keep-awake');
+        var scoreDisplay = document.getElementById('scoreDisplay');
+        var contractDisplay = document.getElementById('contractDisplay');
+        var vulnerableToggle = document.getElementById('vulnerable');
+        var keepAwakeToggle = document.getElementById('keep-awake');
 
-        // Input validation - check if result is possible for given contract
+        // Input validation
         function isValidResult(level, result) {
-            const contractTricks = level + 6;
-            const maxUndertricks = -(contractTricks - 1); // Can't go down more than contract-1
-            const maxOvertricks = 13 - contractTricks; // Can't make more than 13 tricks total
+            var contractTricks = level + 6;
+            var maxUndertricks = -(contractTricks - 1);
+            var maxOvertricks = 13 - contractTricks;
             
-            if (result === 0) return true; // Making contract is always valid
-            if (result > 0) return result <= maxOvertricks; // Overtricks
-            if (result < 0) return result >= maxUndertricks; // Undertricks
+            if (result === 0) return true;
+            if (result > 0) return result <= maxOvertricks;
+            if (result < 0) return result >= maxUndertricks;
             
             return false;
         }
 
-        // Update button states based on current contract
+        // Update button states
         function updateButtonStates() {
-            const resultButtons = document.querySelectorAll('[data-result]');
+            var resultButtons = document.querySelectorAll('[data-result]');
             
-            resultButtons.forEach(btn => {
-                const result = parseInt(btn.dataset.result) || 0;
+            for (var i = 0; i < resultButtons.length; i++) {
+                var btn = resultButtons[i];
+                var result = parseInt(btn.dataset.result) || 0;
                 
                 if (gameState.level) {
-                    const isValid = isValidResult(gameState.level, result);
+                    var isValid = isValidResult(gameState.level, result);
                     btn.disabled = !isValid;
                 } else {
-                    btn.disabled = true; // Disable all result buttons until contract is set
+                    btn.disabled = true;
                 }
-            });
+            }
         }
 
         // Update display
@@ -501,16 +495,16 @@
                 return;
             }
 
-            let contractText = `${gameState.level}${gameState.suit}`;
+            var contractText = gameState.level + gameState.suit;
             if (gameState.doubled === 'doubled') contractText += ' X';
             if (gameState.doubled === 'redoubled') contractText += ' XX';
             if (gameState.vulnerable) contractText += ' (Vul)';
 
             if (gameState.result !== null) {
-                const contractTricks = gameState.level + 6;
-                const actualTricks = contractTricks + gameState.result;
+                var contractTricks = gameState.level + 6;
+                var actualTricks = contractTricks + gameState.result;
                 
-                const score = BridgeScoring.calculateScore(
+                var score = BridgeScoring.calculateScore(
                     gameState.level,
                     gameState.suit,
                     actualTricks,
@@ -519,8 +513,8 @@
                     gameState.doubled === 'redoubled'
                 );
 
-                scoreDisplay.textContent = score >= 0 ? `+${score}` : `${score}`;
-                contractDisplay.textContent = `${contractText} • ${actualTricks} tricks`;
+                scoreDisplay.textContent = score >= 0 ? '+' + score : '' + score;
+                contractDisplay.textContent = contractText + ' • ' + actualTricks + ' tricks';
             } else {
                 scoreDisplay.textContent = contractText;
                 contractDisplay.textContent = 'Select result';
@@ -529,7 +523,7 @@
             updateButtonStates();
         }
 
-        // Event Handlers
+        // Event handlers
         function handleLevelClick(level) {
             gameState.level = level;
             gameState.result = null;
@@ -572,26 +566,44 @@
             updateDisplay();
         }
 
-        // Setup Event Listeners
-        function setupEventListeners() {
+        // Show crypto calculator
+        function showCryptoCalculator() {
+            alert('Crypto calculator feature - working to implement this properly!');
+        }
+
+        // Initialize app
+        function init() {
             // Level buttons
-            document.querySelectorAll('[data-level]').forEach(btn => {
-                btn.addEventListener('click', () => handleLevelClick(parseInt(btn.dataset.level)));
-            });
+            var levelButtons = document.querySelectorAll('[data-level]');
+            for (var i = 0; i < levelButtons.length; i++) {
+                (function(btn) {
+                    btn.addEventListener('click', function() {
+                        handleLevelClick(parseInt(btn.dataset.level));
+                    });
+                })(levelButtons[i]);
+            }
 
             // Suit buttons
-            document.querySelectorAll('[data-suit]').forEach(btn => {
-                btn.addEventListener('click', () => handleSuitClick(btn.dataset.suit));
-            });
+            var suitButtons = document.querySelectorAll('[data-suit]');
+            for (var i = 0; i < suitButtons.length; i++) {
+                (function(btn) {
+                    btn.addEventListener('click', function() {
+                        handleSuitClick(btn.dataset.suit);
+                    });
+                })(suitButtons[i]);
+            }
 
             // Result buttons
-            document.querySelectorAll('[data-result]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    if (!btn.disabled) {
-                        handleResultClick(parseInt(btn.dataset.result) || 0);
-                    }
-                });
-            });
+            var resultButtons = document.querySelectorAll('[data-result]');
+            for (var i = 0; i < resultButtons.length; i++) {
+                (function(btn) {
+                    btn.addEventListener('click', function() {
+                        if (!btn.disabled) {
+                            handleResultClick(parseInt(btn.dataset.result) || 0);
+                        }
+                    });
+                })(resultButtons[i]);
+            }
 
             // Doubling buttons
             document.getElementById('double').addEventListener('click', handleDoubleClick);
@@ -601,324 +613,55 @@
             document.getElementById('clear').addEventListener('click', handleClear);
 
             // Vulnerability toggle
-            vulnerableToggle.addEventListener('click', () => {
+            vulnerableToggle.addEventListener('click', function() {
                 vulnerableToggle.classList.toggle('active');
                 gameState.vulnerable = vulnerableToggle.classList.contains('active');
                 gameState.result = null;
                 updateDisplay();
             });
 
-            // Keep awake toggle (independent setting)
-            keepAwakeToggle.addEventListener('click', () => {
+            // Keep awake toggle
+            keepAwakeToggle.addEventListener('click', function() {
                 keepAwakeToggle.classList.toggle('active');
-                
                 if (keepAwakeToggle.classList.contains('active')) {
-                    // Prevent screen from sleeping
                     if ('wakeLock' in navigator) {
-                        navigator.wakeLock.request('screen')
-                            .then(wakeLock => {
-                                console.log('Wake lock active');
-                                // Store wake lock to release later if needed
-                                window.currentWakeLock = wakeLock;
-                            })
-                            .catch(e => {
-                                console.log('Wake lock failed:', e);
-                                // Fallback: use video method for older devices
-                                activateVideoWakeLock();
-                            });
-                    } else {
-                        // Fallback for browsers without Wake Lock API
-                        activateVideoWakeLock();
-                    }
-                } else {
-                    // Release wake lock
-                    if (window.currentWakeLock) {
-                        window.currentWakeLock.release();
-                        window.currentWakeLock = null;
-                    }
-                    if (window.wakeLockVideo) {
-                        window.wakeLockVideo.pause();
-                        window.wakeLockVideo = null;
+                        navigator.wakeLock.request('screen').catch(function(e) {
+                            console.log('Wake lock failed:', e);
+                        });
                     }
                 }
             });
 
-            // Crypto calculator button
-            document.getElementById('crypto').addEventListener('click', () => {
-                showCryptoCalculator();
+            // Utility buttons
+            document.getElementById('history').addEventListener('click', function() {
+                alert('Score history feature coming soon!');
             });
-        }
 
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
+            document.getElementById('crypto').addEventListener('click', showCryptoCalculator);
+
+            document.getElementById('settings').addEventListener('click', function() {
+                alert('Settings feature coming soon!');
+            });
+
             updateDisplay();
-        });
-
-        // Wake lock fallback function for older devices
-        function activateVideoWakeLock() {
-            if (!window.wakeLockVideo) {
-                window.wakeLockVideo = document.createElement('video');
-                window.wakeLockVideo.setAttribute('muted', '');
-                window.wakeLockVideo.setAttribute('playsinline', '');
-                window.wakeLockVideo.setAttribute('loop', '');
-                window.wakeLockVideo.style.position = 'absolute';
-                window.wakeLockVideo.style.left = '-9999px';
-                window.wakeLockVideo.style.width = '1px';
-                window.wakeLockVideo.style.height = '1px';
-                
-                // Create a minimal video data URL
-                window.wakeLockVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMWF2YzEAAAAIZnJlZQAAAAhtZGF0AAAC7AFNdQAAEUBBQUMAABhH';
-                
-                document.body.appendChild(window.wakeLockVideo);
-            }
-            
-            window.wakeLockVideo.play().catch(e => console.log('Video wake lock failed:', e));
         }
 
-        // Crypto Calculator Functions
-        function showCryptoCalculator() {
-            // Create crypto calculator overlay
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0,0,0,0.8); z-index: 10000;
-                display: flex; align-items: center; justify-content: center;
-                padding: 20px; box-sizing: border-box;
-            `;
-
-            const calculator = document.createElement('div');
-            calculator.style.cssText = `
-                background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-                border-radius: 20px; padding: 20px; width: 100%; max-width: 400px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3); color: white;
-                max-height: 90vh; overflow-y: auto;
-            `;
-
-            calculator.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0; font-size: 20px;">💰 Crypto & Currency</h2>
-                    <button id="closeCrypto" style="background: var(--btn-red); border: none; color: white; 
-                           border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 16px;">×</button>
-                </div>
-
-                <div style="background: var(--display-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; 
-                           color: var(--display-text); text-align: center; font-size: 18px; font-weight: bold;" 
-                     id="cryptoDisplay">Enter amount to convert</div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                    <div>
-                        <label style="font-size: 12px; color: #bdc3c7; margin-bottom: 5px; display: block;">From:</label>
-                        <select id="fromCrypto" style="width: 100%; padding: 8px; border-radius: 8px; border: none; 
-                               font-size: 14px; background: white; color: #2c3e50;"></select>
-                    </div>
-                    <div>
-                        <label style="font-size: 12px; color: #bdc3c7; margin-bottom: 5px; display: block;">To:</label>
-                        <select id="toCrypto" style="width: 100%; padding: 8px; border-radius: 8px; border: none; 
-                               font-size: 14px; background: white; color: #2c3e50;"></select>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
-                    <button class="crypto-btn" data-value="1">1</button>
-                    <button class="crypto-btn" data-value="2">2</button>
-                    <button class="crypto-btn" data-value="3">3</button>
-                    <button class="crypto-btn" data-value="4">4</button>
-                    <button class="crypto-btn" data-value="5">5</button>
-                    <button class="crypto-btn" data-value="6">6</button>
-                    <button class="crypto-btn" data-value="7">7</button>
-                    <button class="crypto-btn" data-value="8">8</button>
-                    <button class="crypto-btn" data-value="9">9</button>
-                    <button class="crypto-btn" data-action="clear" style="background: var(--btn-red);">C</button>
-                    <button class="crypto-btn" data-value="0">0</button>
-                    <button class="crypto-btn" data-value=".">.</button>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
-                    <button class="crypto-btn" data-action="refresh" style="background: var(--btn-green);">🔄 Refresh</button>
-                    <button class="crypto-btn" data-action="swap" style="background: var(--btn-orange);">⇄ Swap</button>
-                </div>
-
-                <div id="cryptoChart" style="background: white; border-radius: 8px; height: 60px; margin-bottom: 10px;
-                     display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 12px;">
-                    📈 Rate chart will appear here
-                </div>
-
-                <div id="lastUpdated" style="text-align: center; font-size: 10px; color: #bdc3c7;"></div>
-
-                <style>
-                    .crypto-btn {
-                        background: var(--btn-blue); border: none; color: white; padding: 12px;
-                        border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;
-                        transition: all 0.15s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                    }
-                    .crypto-btn:active { transform: scale(0.95); }
-                </style>
-            `;
-
-            overlay.appendChild(calculator);
-            document.body.appendChild(overlay);
-
-            // Initialize crypto calculator
-            initializeCryptoCalculator();
-
-            // Close button
-            document.getElementById('closeCrypto').addEventListener('click', () => {
-                document.body.removeChild(overlay);
-            });
-
-            // Click outside to close
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    document.body.removeChild(overlay);
-                }
-            });
-        }
-
-        // Crypto Calculator Logic
-        function initializeCryptoCalculator() {
-            const currencies = [
-                { code: 'BTC', name: 'Bitcoin', symbol: '₿', flag: '🪙', type: 'crypto' },
-                { code: 'ETH', name: 'Ethereum', symbol: 'Ξ', flag: '🔷', type: 'crypto' },
-                { code: 'BNB', name: 'Binance Coin', symbol: 'BNB', flag: '🟡', type: 'crypto' },
-                { code: 'ADA', name: 'Cardano', symbol: 'ADA', flag: '🔵', type: 'crypto' },
-                { code: 'SOL', name: 'Solana', symbol: 'SOL', flag: '🟣', type: 'crypto' },
-                { code: 'DOGE', name: 'Dogecoin', symbol: 'Ð', flag: '🐕', type: 'crypto' },
-                
-                { code: 'USD', name: 'US Dollar', symbol: '
-    </script>
-</body>
-</html>, flag: '🇺🇸', type: 'fiat' },
-                { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺', type: 'fiat' },
-                { code: 'GBP', name: 'British Pound', symbol: '£', flag: '🇬🇧', type: 'fiat' },
-                { code: 'JPY', name: 'Japanese Yen', symbol: '¥', flag: '🇯🇵', type: 'fiat' },
-                { code: 'CAD', name: 'Canadian Dollar', symbol: 'C
-    </script>
-</body>
-</html>, flag: '🇨🇦', type: 'fiat' },
-                { code: 'AUD', name: 'Australian Dollar', symbol: 'A
-    </script>
-</body>
-</html>, flag: '🇦🇺', type: 'fiat' }
-            ];
-
-            const rates = {
-                'BTC': { 'USD': 43250, 'EUR': 39800, 'GBP': 34200 },
-                'ETH': { 'USD': 2650, 'EUR': 2440, 'GBP': 2100 },
-                'BNB': { 'USD': 310, 'EUR': 285, 'GBP': 245 },
-                'ADA': { 'USD': 0.38, 'EUR': 0.35, 'GBP': 0.30 },
-                'SOL': { 'USD': 98.5, 'EUR': 90.8, 'GBP': 78.1 },
-                'DOGE': { 'USD': 0.072, 'EUR': 0.066, 'GBP': 0.057 },
-                'USD': { 'EUR': 0.926, 'GBP': 0.797, 'JPY': 149.1, 'CAD': 1.354, 'AUD': 1.513 },
-                'EUR': { 'USD': 1.080, 'GBP': 0.861, 'JPY': 161.0 },
-                'GBP': { 'USD': 1.255, 'EUR': 1.162, 'JPY': 187.1 }
-            };
-
-            let currentInput = '1';
-            let lastUpdated = new Date();
-
-            const fromSelect = document.getElementById('fromCrypto');
-            const toSelect = document.getElementById('toCrypto');
-            const display = document.getElementById('cryptoDisplay');
-            const lastUpdatedEl = document.getElementById('lastUpdated');
-
-            // Populate selectors
-            currencies.forEach(curr => {
-                const fromOption = document.createElement('option');
-                fromOption.value = curr.code;
-                fromOption.textContent = `${curr.flag} ${curr.code} - ${curr.name}`;
-                if (curr.type === 'crypto') fromOption.style.fontWeight = 'bold';
-                fromSelect.appendChild(fromOption);
-
-                const toOption = document.createElement('option');
-                toOption.value = curr.code;
-                toOption.textContent = `${curr.flag} ${curr.code} - ${curr.name}`;
-                if (curr.type === 'crypto') toOption.style.fontWeight = 'bold';
-                toSelect.appendChild(toOption);
-            });
-
-            fromSelect.value = 'BTC';
-            toSelect.value = 'USD';
-
-            function convert() {
-                const amount = parseFloat(currentInput) || 0;
-                const from = fromSelect.value;
-                const to = toSelect.value;
-
-                let result = amount;
-                if (from !== to) {
-                    if (rates[from] && rates[from][to]) {
-                        result = amount * rates[from][to];
-                    } else if (rates[to] && rates[to][from]) {
-                        result = amount / rates[to][from];
-                    }
-                }
-
-                const fromCurr = currencies.find(c => c.code === from);
-                const toCurr = currencies.find(c => c.code === to);
-
-                if (amount === 1) {
-                    display.textContent = `1 ${from} = ${formatNumber(result)} ${to}`;
-                } else {
-                    display.textContent = `${fromCurr?.symbol || ''}${formatNumber(amount)} = ${toCurr?.symbol || ''}${formatNumber(result)}`;
-                }
-            }
-
-            function formatNumber(num) {
-                if (num > 1000) return num.toLocaleString(undefined, {maximumFractionDigits: 2});
-                if (num > 1) return num.toFixed(4);
-                return num.toFixed(8);
-            }
-
-            function updateInput(value) {
-                if (value === '.') {
-                    if (!currentInput.includes('.')) currentInput += '.';
-                } else if (currentInput === '0' || currentInput === '1') {
-                    currentInput = value;
-                } else {
-                    currentInput += value;
-                }
-                convert();
-            }
-
-            function clearInput() {
-                currentInput = '1';
-                convert();
-            }
-
-            function swapCurrencies() {
-                const temp = fromSelect.value;
-                fromSelect.value = toSelect.value;
-                toSelect.value = temp;
-                convert();
-            }
-
-            // Event listeners
-            document.querySelectorAll('.crypto-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const value = btn.dataset.value;
-                    const action = btn.dataset.action;
-
-                    if (value) updateInput(value);
-                    else if (action === 'clear') clearInput();
-                    else if (action === 'swap') swapCurrencies();
-                    else if (action === 'refresh') {
-                        display.textContent = 'Refreshing rates...';
-                        setTimeout(() => {
-                            lastUpdated = new Date();
-                            lastUpdatedEl.textContent = `Updated: ${lastUpdated.toLocaleTimeString()}`;
-                            convert();
-                        }, 1000);
-                    }
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(function(registration) {
+                    console.log('SW registered');
+                })
+                .catch(function(error) {
+                    console.log('SW registration failed');
                 });
-            });
+        }
 
-            fromSelect.addEventListener('change', convert);
-            toSelect.addEventListener('change', convert);
-
-            // Initialize
-            lastUpdatedEl.textContent = `Updated: ${lastUpdated.toLocaleTimeString()}`;
-            convert();
+        // Start the app
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
         }
     </script>
 </body>
