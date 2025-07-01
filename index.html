@@ -1,4 +1,11 @@
-<!DOCTYPE html>
+// Utility buttons
+            document.getElementById('history').addEventListener('click', () => {
+                alert('Score history feature coming soon!');
+            });
+
+            document.getElementById('settings').addEventListener('click', () => {
+                alert('Settings feature coming soon!');
+            });<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -604,34 +611,42 @@
             // Keep awake toggle (independent setting)
             keepAwakeToggle.addEventListener('click', () => {
                 keepAwakeToggle.classList.toggle('active');
-                // Keep screen awake functionality could be added here
+                
                 if (keepAwakeToggle.classList.contains('active')) {
                     // Prevent screen from sleeping
                     if ('wakeLock' in navigator) {
-                        navigator.wakeLock.request('screen').catch(e => console.log('Wake lock failed'));
+                        navigator.wakeLock.request('screen')
+                            .then(wakeLock => {
+                                console.log('Wake lock active');
+                                // Store wake lock to release later if needed
+                                window.currentWakeLock = wakeLock;
+                            })
+                            .catch(e => {
+                                console.log('Wake lock failed:', e);
+                                // Fallback: use video method for older devices
+                                activateVideoWakeLock();
+                            });
+                    } else {
+                        // Fallback for browsers without Wake Lock API
+                        activateVideoWakeLock();
+                    }
+                } else {
+                    // Release wake lock
+                    if (window.currentWakeLock) {
+                        window.currentWakeLock.release();
+                        window.currentWakeLock = null;
+                    }
+                    if (window.wakeLockVideo) {
+                        window.wakeLockVideo.pause();
+                        window.wakeLockVideo = null;
                     }
                 }
             });
 
-            // Utility buttons (placeholder)
-            document.getElementById('history').addEventListener('click', () => {
-                alert('Score history feature coming soon!');
-            });
-
+            // Crypto calculator button
             document.getElementById('crypto').addEventListener('click', () => {
-                alert('Crypto converter feature coming soon!');
+                showCryptoCalculator();
             });
-
-            document.getElementById('settings').addEventListener('click', () => {
-                alert('Settings feature coming soon!');
-            });
-        }
-
-        // Service Worker registration
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(registration => console.log('SW registered'))
-                .catch(error => console.log('SW registration failed'));
         }
 
         // Initialize app
@@ -639,6 +654,272 @@
             setupEventListeners();
             updateDisplay();
         });
+
+        // Wake lock fallback function for older devices
+        function activateVideoWakeLock() {
+            if (!window.wakeLockVideo) {
+                window.wakeLockVideo = document.createElement('video');
+                window.wakeLockVideo.setAttribute('muted', '');
+                window.wakeLockVideo.setAttribute('playsinline', '');
+                window.wakeLockVideo.setAttribute('loop', '');
+                window.wakeLockVideo.style.position = 'absolute';
+                window.wakeLockVideo.style.left = '-9999px';
+                window.wakeLockVideo.style.width = '1px';
+                window.wakeLockVideo.style.height = '1px';
+                
+                // Create a minimal video data URL
+                window.wakeLockVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMWF2YzEAAAAIZnJlZQAAAAhtZGF0AAAC7AFNdQAAEUBBQUMAABhH';
+                
+                document.body.appendChild(window.wakeLockVideo);
+            }
+            
+            window.wakeLockVideo.play().catch(e => console.log('Video wake lock failed:', e));
+        }
+
+        // Crypto Calculator Functions
+        function showCryptoCalculator() {
+            // Create crypto calculator overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.8); z-index: 10000;
+                display: flex; align-items: center; justify-content: center;
+                padding: 20px; box-sizing: border-box;
+            `;
+
+            const calculator = document.createElement('div');
+            calculator.style.cssText = `
+                background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+                border-radius: 20px; padding: 20px; width: 100%; max-width: 400px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3); color: white;
+                max-height: 90vh; overflow-y: auto;
+            `;
+
+            calculator.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 20px;">💰 Crypto & Currency</h2>
+                    <button id="closeCrypto" style="background: var(--btn-red); border: none; color: white; 
+                           border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 16px;">×</button>
+                </div>
+
+                <div style="background: var(--display-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; 
+                           color: var(--display-text); text-align: center; font-size: 18px; font-weight: bold;" 
+                     id="cryptoDisplay">Enter amount to convert</div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div>
+                        <label style="font-size: 12px; color: #bdc3c7; margin-bottom: 5px; display: block;">From:</label>
+                        <select id="fromCrypto" style="width: 100%; padding: 8px; border-radius: 8px; border: none; 
+                               font-size: 14px; background: white; color: #2c3e50;"></select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: #bdc3c7; margin-bottom: 5px; display: block;">To:</label>
+                        <select id="toCrypto" style="width: 100%; padding: 8px; border-radius: 8px; border: none; 
+                               font-size: 14px; background: white; color: #2c3e50;"></select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
+                    <button class="crypto-btn" data-value="1">1</button>
+                    <button class="crypto-btn" data-value="2">2</button>
+                    <button class="crypto-btn" data-value="3">3</button>
+                    <button class="crypto-btn" data-value="4">4</button>
+                    <button class="crypto-btn" data-value="5">5</button>
+                    <button class="crypto-btn" data-value="6">6</button>
+                    <button class="crypto-btn" data-value="7">7</button>
+                    <button class="crypto-btn" data-value="8">8</button>
+                    <button class="crypto-btn" data-value="9">9</button>
+                    <button class="crypto-btn" data-action="clear" style="background: var(--btn-red);">C</button>
+                    <button class="crypto-btn" data-value="0">0</button>
+                    <button class="crypto-btn" data-value=".">.</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                    <button class="crypto-btn" data-action="refresh" style="background: var(--btn-green);">🔄 Refresh</button>
+                    <button class="crypto-btn" data-action="swap" style="background: var(--btn-orange);">⇄ Swap</button>
+                </div>
+
+                <div id="cryptoChart" style="background: white; border-radius: 8px; height: 60px; margin-bottom: 10px;
+                     display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 12px;">
+                    📈 Rate chart will appear here
+                </div>
+
+                <div id="lastUpdated" style="text-align: center; font-size: 10px; color: #bdc3c7;"></div>
+
+                <style>
+                    .crypto-btn {
+                        background: var(--btn-blue); border: none; color: white; padding: 12px;
+                        border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;
+                        transition: all 0.15s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    }
+                    .crypto-btn:active { transform: scale(0.95); }
+                </style>
+            `;
+
+            overlay.appendChild(calculator);
+            document.body.appendChild(overlay);
+
+            // Initialize crypto calculator
+            initializeCryptoCalculator();
+
+            // Close button
+            document.getElementById('closeCrypto').addEventListener('click', () => {
+                document.body.removeChild(overlay);
+            });
+
+            // Click outside to close
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    document.body.removeChild(overlay);
+                }
+            });
+        }
+
+        // Crypto Calculator Logic
+        function initializeCryptoCalculator() {
+            const currencies = [
+                { code: 'BTC', name: 'Bitcoin', symbol: '₿', flag: '🪙', type: 'crypto' },
+                { code: 'ETH', name: 'Ethereum', symbol: 'Ξ', flag: '🔷', type: 'crypto' },
+                { code: 'BNB', name: 'Binance Coin', symbol: 'BNB', flag: '🟡', type: 'crypto' },
+                { code: 'ADA', name: 'Cardano', symbol: 'ADA', flag: '🔵', type: 'crypto' },
+                { code: 'SOL', name: 'Solana', symbol: 'SOL', flag: '🟣', type: 'crypto' },
+                { code: 'DOGE', name: 'Dogecoin', symbol: 'Ð', flag: '🐕', type: 'crypto' },
+                
+                { code: 'USD', name: 'US Dollar', symbol: '
+    </script>
+</body>
+</html>, flag: '🇺🇸', type: 'fiat' },
+                { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺', type: 'fiat' },
+                { code: 'GBP', name: 'British Pound', symbol: '£', flag: '🇬🇧', type: 'fiat' },
+                { code: 'JPY', name: 'Japanese Yen', symbol: '¥', flag: '🇯🇵', type: 'fiat' },
+                { code: 'CAD', name: 'Canadian Dollar', symbol: 'C
+    </script>
+</body>
+</html>, flag: '🇨🇦', type: 'fiat' },
+                { code: 'AUD', name: 'Australian Dollar', symbol: 'A
+    </script>
+</body>
+</html>, flag: '🇦🇺', type: 'fiat' }
+            ];
+
+            const rates = {
+                'BTC': { 'USD': 43250, 'EUR': 39800, 'GBP': 34200 },
+                'ETH': { 'USD': 2650, 'EUR': 2440, 'GBP': 2100 },
+                'BNB': { 'USD': 310, 'EUR': 285, 'GBP': 245 },
+                'ADA': { 'USD': 0.38, 'EUR': 0.35, 'GBP': 0.30 },
+                'SOL': { 'USD': 98.5, 'EUR': 90.8, 'GBP': 78.1 },
+                'DOGE': { 'USD': 0.072, 'EUR': 0.066, 'GBP': 0.057 },
+                'USD': { 'EUR': 0.926, 'GBP': 0.797, 'JPY': 149.1, 'CAD': 1.354, 'AUD': 1.513 },
+                'EUR': { 'USD': 1.080, 'GBP': 0.861, 'JPY': 161.0 },
+                'GBP': { 'USD': 1.255, 'EUR': 1.162, 'JPY': 187.1 }
+            };
+
+            let currentInput = '1';
+            let lastUpdated = new Date();
+
+            const fromSelect = document.getElementById('fromCrypto');
+            const toSelect = document.getElementById('toCrypto');
+            const display = document.getElementById('cryptoDisplay');
+            const lastUpdatedEl = document.getElementById('lastUpdated');
+
+            // Populate selectors
+            currencies.forEach(curr => {
+                const fromOption = document.createElement('option');
+                fromOption.value = curr.code;
+                fromOption.textContent = `${curr.flag} ${curr.code} - ${curr.name}`;
+                if (curr.type === 'crypto') fromOption.style.fontWeight = 'bold';
+                fromSelect.appendChild(fromOption);
+
+                const toOption = document.createElement('option');
+                toOption.value = curr.code;
+                toOption.textContent = `${curr.flag} ${curr.code} - ${curr.name}`;
+                if (curr.type === 'crypto') toOption.style.fontWeight = 'bold';
+                toSelect.appendChild(toOption);
+            });
+
+            fromSelect.value = 'BTC';
+            toSelect.value = 'USD';
+
+            function convert() {
+                const amount = parseFloat(currentInput) || 0;
+                const from = fromSelect.value;
+                const to = toSelect.value;
+
+                let result = amount;
+                if (from !== to) {
+                    if (rates[from] && rates[from][to]) {
+                        result = amount * rates[from][to];
+                    } else if (rates[to] && rates[to][from]) {
+                        result = amount / rates[to][from];
+                    }
+                }
+
+                const fromCurr = currencies.find(c => c.code === from);
+                const toCurr = currencies.find(c => c.code === to);
+
+                if (amount === 1) {
+                    display.textContent = `1 ${from} = ${formatNumber(result)} ${to}`;
+                } else {
+                    display.textContent = `${fromCurr?.symbol || ''}${formatNumber(amount)} = ${toCurr?.symbol || ''}${formatNumber(result)}`;
+                }
+            }
+
+            function formatNumber(num) {
+                if (num > 1000) return num.toLocaleString(undefined, {maximumFractionDigits: 2});
+                if (num > 1) return num.toFixed(4);
+                return num.toFixed(8);
+            }
+
+            function updateInput(value) {
+                if (value === '.') {
+                    if (!currentInput.includes('.')) currentInput += '.';
+                } else if (currentInput === '0' || currentInput === '1') {
+                    currentInput = value;
+                } else {
+                    currentInput += value;
+                }
+                convert();
+            }
+
+            function clearInput() {
+                currentInput = '1';
+                convert();
+            }
+
+            function swapCurrencies() {
+                const temp = fromSelect.value;
+                fromSelect.value = toSelect.value;
+                toSelect.value = temp;
+                convert();
+            }
+
+            // Event listeners
+            document.querySelectorAll('.crypto-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const value = btn.dataset.value;
+                    const action = btn.dataset.action;
+
+                    if (value) updateInput(value);
+                    else if (action === 'clear') clearInput();
+                    else if (action === 'swap') swapCurrencies();
+                    else if (action === 'refresh') {
+                        display.textContent = 'Refreshing rates...';
+                        setTimeout(() => {
+                            lastUpdated = new Date();
+                            lastUpdatedEl.textContent = `Updated: ${lastUpdated.toLocaleTimeString()}`;
+                            convert();
+                        }, 1000);
+                    }
+                });
+            });
+
+            fromSelect.addEventListener('change', convert);
+            toSelect.addEventListener('change', convert);
+
+            // Initialize
+            lastUpdatedEl.textContent = `Updated: ${lastUpdated.toLocaleTimeString()}`;
+            convert();
+        }
     </script>
 </body>
 </html>
